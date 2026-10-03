@@ -38,7 +38,7 @@ Nos exemplos, "Não PTS" mostra um texto incorreto. "PTS" mostra um texto corret
 
 **Regra 1.5**: Você pode usar uma palavra de uma categoria de nomes técnicos. Consulte `substituicoes.md` para as 19 categorias.
 
-**Regra 1.6**: Você pode usar uma palavra que não está no vocabulário somente quando ela é um nome técnico ou parte de um nome técnico.
+**Regra 1.6**: Use uma palavra fora do vocabulário somente quando ela for um nome técnico ou parte de um nome técnico.
 - Permitido: "a base do triângulo" (termo da matemática).
 - Não PTS: "na base da unidade". PTS: "na parte inferior da unidade".
 
@@ -62,9 +62,9 @@ Nos exemplos, "Não PTS" mostra um texto incorreto. "PTS" mostra um texto corret
 - Não PTS: "Se você detectar fios partidos, conserte-os."
 - PTS: "Se você encontrar fios partidos, repare os fios."
 
-**Regra 1.13**: Não transforme um verbo técnico em substantivo genérico. O particípio de um verbo técnico é permitido como adjetivo ("o furo alargado").
+**Regra 1.13**: Não transforme um verbo técnico em substantivo genérico. Você pode usar o particípio de um verbo técnico como adjetivo ("o furo alargado").
 
-**Regra 1.14**: Use a ortografia oficial do português do Brasil, conforme o Acordo Ortográfico de 1990 e o VOLP da Academia Brasileira de Letras. Escreva "ideia", e não "idéia". Escreva "para", e não "pra".
+**Regra 1.14**: Use a ortografia oficial do português do Brasil, conforme o Acordo Ortográfico de 1990 e o VOLP. Escreva "ideia", e não "idéia". Escreva "para", e não "pra".
 
 **Regra 1.15** **[PT]**: Prefira o termo em português quando ele existe e é comum na área. Mantenha o termo estrangeiro quando ele é o nome técnico oficial.
 - Não PTS: "Delete o arquivo e dê um restart no servidor."
@@ -114,7 +114,7 @@ O inglês junta substantivos em grupos ("runway light connection"). O português
 - futuro do subjuntivo, somente depois de "se" ou "quando" ("se você remover")
 - presente do subjuntivo, somente depois de "que" em ordens ("certifique-se de que a válvula esteja fechada").
 
-As outras formas não são permitidas: gerúndio, pretérito imperfeito, pretérito mais-que-perfeito, futuro do pretérito, tempos compostos e mesóclise.
+Não use estas outras formas verbais: gerúndio, pretérito imperfeito, pretérito mais-que-perfeito, futuro do pretérito, tempos compostos e mesóclise.
 
 **Regra 3.3**: Use o particípio somente como adjetivo, antes ou depois de um substantivo, ou depois de "estar" e "ficar". Isto mostra um estado e não é voz passiva.
 - Permitido: "Os fios estão desconectados."
@@ -189,7 +189,7 @@ As outras formas não são permitidas: gerúndio, pretérito imperfeito, pretér
 
 **Regra 5.1**: Escreva frases curtas. Use no máximo 20 palavras em cada frase. Este limite também vale para advertências e cuidados.
 
-**Regra 5.2**: Escreva somente uma instrução em cada frase. Duas ou mais ações na mesma frase são permitidas somente quando ocorrem ao mesmo tempo.
+**Regra 5.2**: Escreva somente uma instrução em cada frase. Você pode escrever duas ações na mesma frase somente quando elas ocorrem ao mesmo tempo.
 - Permitido: "Segure o painel na posição e instale o fixador."
 
 **Regra 5.3**: Escreva cada instrução no imperativo.
@@ -259,7 +259,7 @@ Uma advertência mostra um risco de lesão ou de morte de pessoas. Um cuidado mo
 - Não PTS: "colocar em funcionamento". PTS: "ligar".
 - Não PTS: "levar em consideração". PTS: "considerar".
 
-**Regra 9.4**: Use um estilo consistente. Em procedimentos, use as mesmas palavras para o mesmo tipo de passo e o mesmo nome para o mesmo item. Em textos descritivos, mudanças de construção são permitidas para deixar o texto fácil de ler.
+**Regra 9.4**: Use um estilo consistente. Em procedimentos, use as mesmas palavras para o mesmo tipo de passo e o mesmo nome para o mesmo item. Em textos descritivos, você pode mudar a construção para deixar o texto fácil de ler.
 
 ## Seção 10: Estruturas visuais e além do texto puro
 

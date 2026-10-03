@@ -15,12 +15,14 @@ Uso:
     type rascunho.txt | python pts_check.py --modo procedimento --formato agente
 
 A ferramenta ignora blocos de código, código em linha, URLs, citações e cabeçalho YAML.
+Diagramas Mermaid têm seus textos de nós e arestas validados conforme a Regra 10.2.
 Código de saída 0 = sem erros. Código de saída 1 = um ou mais erros.
 
 Adaptado de ste_check.py (simplified-technical-english, de 0xpili, licença MIT).
 """
 
 import argparse
+import glob
 import json
 import re
 import sys
@@ -113,6 +115,9 @@ SE_ERRO = {
     "espera", "esperam", "precisa", "precisam", "necessita", "necessitam",
     "exige", "exigem", "permite", "permitem", "proíbe", "proíbem", "instala",
     "instalam", "procede", "efetua", "efetuam", "realiza", "realizam",
+    "executa", "executam", "configura", "configuram", "aplica", "aplicam",
+    "remove", "removem", "cria", "criam", "inicia", "iniciam", "desliga",
+    "desligam", "ajusta", "ajustam", "abre", "abrem", "fecha", "fecham",
 }
 SE_OK = {
     "certifique", "certifiquem", "assegure", "assegurem", "lembre", "lembrem",
@@ -127,7 +132,9 @@ SE_ENCLITICO = re.compile(r"\b([^\W\d_]+)-se\b", re.IGNORECASE)
 SE_PROCLITICO = re.compile(
     r"\b(?:não|que|já|onde|como|também|nunca)\s+se\s+"
     r"(?:recomenda|sugere|aconselha|deve|devem|pode|podem|solicita|pede|"
-    r"exige|permite|precisa)\b",
+    r"exige|permite|precisa|usa|usam|faz|fazem|instala|instalam|executa|"
+    r"executam|configura|configuram|inicia|iniciam|remove|removem|altera|"
+    r"alteram|aplica|aplicam|verifica|verificam)\b",
     re.IGNORECASE,
 )
 
@@ -210,40 +217,62 @@ SLOP_ABERTURA = re.compile(
     r"^(?:"
     r"certamente|"
     r"com\s+certeza|"
-    r"com\s+prazer|"
-    r"com\s+todo\s+o\s+prazer|"
+    r"com\s+(?:todo\s+o\s+)?prazer|"
     r"olá|"
     r"oi|"
+    r"bom\s+dia|"
+    r"boa\s+(?:tarde|noite)|"
     r"saudações|"
     r"como\s+uma?\s+(?:ia|modelo\s+de\s+linguagem|assistente)|"
     r"claro\s+que\s+sim|"
-    r"sem\s+dúvida"
-    r")(?:\s*[,!.]|\s*$)",
+    r"sem\s+dúvida|"
+    r"perfeito|"
+    r"excelente|"
+    r"entendido|"
+    r"compreendido|"
+    r"aqui\s+está|"
+    r"aqui\s+estão|"
+    r"segue(?:\s+abaixo|\s+a\s+resposta)?"
+    r")(?:\s*[,!.:]|\s*$)|"
+    r"^claro(?:\s*[,!]|\s*$)",
     re.IGNORECASE,
 )
 
 SLOP_TRANSICAO = re.compile(
     r"\b(?:"
-    r"vale\s+(?:destacar|ressaltar|lembrar|notar|pontuar|mencionar|frisar)|"
-    r"é\s+(?:importante|crucial|fundamental|essencial|relevante|válido|vital)\s+(?:notar|destacar|ressaltar|lembrar|frisar|mencionar|pontuar|ter\s+em\s+mente)|"
-    r"cabe\s+(?:destacar|ressaltar|lembrar|notar|mencionar|pontuar)|"
-    r"importante\s+(?:notar|destacar|ressaltar|lembrar|frisar|mencionar)|"
+    r"vale\s+(?:destacar|ressaltar|lembrar|notar|pontuar|mencionar|frisar|salientar|enfatizar)|"
+    r"é\s+(?:importante|crucial|fundamental|essencial|relevante|válido|vital|imperativo|bom)\s+(?:notar|destacar|ressaltar|lembrar|frisar|mencionar|pontuar|salientar|enfatizar|ter\s+em\s+mente|sublinhar)|"
+    r"cabe\s+(?:destacar|ressaltar|lembrar|notar|mencionar|pontuar|salientar|enfatizar)|"
+    r"cumpre\s+(?:notar|destacar|lembrar|ressaltar)|"
+    r"importante\s+(?:notar|destacar|ressaltar|lembrar|frisar|mencionar|salientar)|"
     r"convém\s+(?:notar|lembrar|destacar|ressaltar)"
-    r")\s+que\b",
+    r")\s+(?:que|:)\b",
     re.IGNORECASE,
 )
 
 SLOP_FECHAMENTO = re.compile(
     r"\b(?:"
-    r"em\s+suma|"
-    r"espero\s+(?:ter\s+ajudado|que\s+(?:isso\s+)?ajude)|"
+    r"em\s+(?:suma|resumo|conclusão)|"
+    r"espero\s+(?:ter\s+(?:ajudado|sido\s+útil)|que\s+(?:isso\s+)?ajude)|"
     r"(?:fique|sinta-se)\s+à\s+vontade\s+para|"
-    r"estou\s+à\s+disposição|"
-    r"(?:se|caso)\s+(?:você\s+)?(?:tiver|tenha)\s+(?:alguma\s+)?dúvida|"
+    r"(?:estou|fico|sempre)\s+à\s+disposição|"
+    r"(?:se|caso)\s+(?:você\s+)?(?:tiver|tenha|precisar)\s+(?:alguma\s+dúvida|de\s+mais\s+(?:ajuda|alguma\s+coisa))|"
     r"qualquer\s+dúvida[,\s]|"
-    r"restou\s+alguma\s+dúvida"
+    r"restou\s+alguma\s+dúvida|"
+    r"não\s+hesite\s+em\s+(?:perguntar|contatar|chamar)|"
+    r"conte\s+comigo|"
+    r"atenciosamente|"
+    r"cordialmente"
     r")\b",
     re.IGNORECASE,
+)
+
+MERMAID_LABEL = re.compile(
+    r"\[(?:\/|\\)?([a-zA-Zà-ÿÀ-ß0-9\s,.:;?!_-]+?)(?:\/|\\)?\]|"
+    r"\{+([a-zA-Zà-ÿÀ-ß0-9\s,.:;?!_-]+?)\}+|"
+    r"\(+([a-zA-Zà-ÿÀ-ß0-9\s,.:;?!_-]+?)\)+|"
+    r"\|([^\|]+?)\||"
+    r"\-\-\s*([^-\n]+?)\s*\-\->"
 )
 
 # ------------------------------------------------------------------ auxiliares
@@ -279,18 +308,17 @@ def parece_participio(w):
     return True
 
 
-def strip_markdown(text):
-    """Remove as partes do texto que as regras do PTS não controlam."""
-    text = text.replace("\r\n", "\n")
-    text = re.sub(r"^---\n.*?\n---\n", "", text, flags=re.DOTALL)  # YAML
-    text = re.sub(r"```.*?```", " ", text, flags=re.DOTALL)  # blocos de código
-    text = re.sub(r"`[^`\n]+`", " CODE ", text)  # código em linha
-    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)  # links
-    text = re.sub(r"https?://\S+", " URL ", text)  # URLs
-    text = re.sub(r"^>.*$", " ", text, flags=re.MULTILINE)  # citações
-    # texto entre aspas conta como uma palavra e não é controlado (regra 8.6)
-    text = re.sub(r"\"[^\"\n]*\"|“[^”\n]*”|«[^»\n]*»", " QUOTED ", text)
-    return text
+def extract_mermaid_labels(line):
+    """Extrai os textos descritivos de nós e arestas de diagramas Mermaid para validação PTS (Regra 10.2)."""
+    matches = MERMAID_LABEL.findall(line)
+    labels = []
+    for m in matches:
+        text = next((t for t in m if t), "").strip()
+        if text and not re.match(r"^(?:TD|LR|TB|RL|BT|graph|flowchart|subgraph|end)$", text, re.IGNORECASE):
+            labels.append(text)
+    if labels:
+        return ". ".join(labels) + "."
+    return ""
 
 
 def clean_markdown_lines(raw_text):
@@ -299,10 +327,13 @@ def clean_markdown_lines(raw_text):
     lines = raw_text.split("\n")
     cleaned = []
     in_yaml = False
-    in_code = False
+    code_fence = None
+    in_mermaid = False
+    in_comment = False
 
     for idx, line in enumerate(lines):
         stripped = line.strip()
+
         # Cabeçalho YAML
         if idx == 0 and stripped == "---":
             in_yaml = True
@@ -314,12 +345,41 @@ def clean_markdown_lines(raw_text):
             cleaned.append("")
             continue
 
-        # Blocos de código
-        if stripped.startswith("```"):
-            in_code = not in_code
+        # Comentários HTML
+        if in_comment:
+            if "-->" in stripped:
+                in_comment = False
             cleaned.append("")
             continue
-        if in_code:
+        if stripped.startswith("<!--"):
+            if not stripped.endswith("-->") or stripped == "<!--":
+                in_comment = True
+            cleaned.append("")
+            continue
+
+        # Fechamento ou conteúdo de bloco de código
+        if code_fence:
+            if stripped.startswith(code_fence):
+                code_fence = None
+                in_mermaid = False
+                cleaned.append("")
+                continue
+            if in_mermaid:
+                labels = extract_mermaid_labels(stripped)
+                cleaned.append(f"- {labels}" if labels else "")
+                continue
+            cleaned.append("")
+            continue
+
+        # Abertura de bloco de código (``` ou ~~~)
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            fence = stripped[:3]
+            # Bloco de código de uma linha só: ```codigo```
+            if stripped.count(fence) >= 2 and stripped.endswith(fence) and len(stripped) > 3:
+                cleaned.append("")
+                continue
+            code_fence = fence
+            in_mermaid = "mermaid" in stripped.lower()
             cleaned.append("")
             continue
 
@@ -330,10 +390,13 @@ def clean_markdown_lines(raw_text):
 
         # Linha de texto comum
         l = line
+        # Entidades HTML (&nbsp;, &copy;, etc.) não contam como ponto e vírgula
+        l = re.sub(r"&[a-zA-Z0-9#]+;", " ", l)
         l = re.sub(r"`[^`\n]+`", " CODE ", l)
         l = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", l)
         l = re.sub(r"https?://\S+", " URL ", l)
         l = re.sub(r"^>\s?", " ", l)
+        # Texto entre aspas conta como uma palavra e não é controlado (regra 8.6)
         l = re.sub(r"\"[^\"\n]*\"|“[^”\n]*”|«[^»\n]*»", " QUOTED ", l)
         cleaned.append(l)
 
@@ -567,10 +630,11 @@ class Report:
         print(json.dumps(self.to_dict(), ensure_ascii=False, indent=2))
 
 
-def check_sentence(sent, mode, report, loc):
+def check_sentence(sent, mode, report, loc, rigor="pragmatico"):
     limit = LIMITES[mode]
     n = count_words(sent)
     head = sent if len(sent) <= 60 else sent[:57] + "..."
+    tolerancia_zero = (rigor == "pragmatico" or mode == "procedimento")
 
     # Limites de palavras
     if n > 25:
@@ -626,14 +690,14 @@ def check_sentence(sent, mode, report, loc):
     for m in SE_ENCLITICO.finditer(sent):
         verbo = m.group(1).lower()
         if verbo in SE_ERRO:
-            report.error(loc, "3.8", f"\"{m.group(0)}\": não use \"-se\" passivo. Use o imperativo.")
+            report.error(loc, "3.8", f"\"{m.group(0)}\": não use \"-se\" passivo ou indeterminado. Use a voz ativa ou o imperativo.")
         elif verbo not in SE_OK:
-            fn = report.warn if mode != "descritivo" else None
-            if fn:
-                fn(loc, "3.8", f"\"{m.group(0)}\": confirme que não é voz passiva com \"-se\".")
+            fn = report.error if tolerancia_zero else report.warn
+            fn(loc, "3.8", f"\"{m.group(0)}\": voz passiva com \"-se\" não é permitida. Use a voz ativa ou o imperativo.")
+
     m = SE_PROCLITICO.search(sent)
     if m:
-        report.error(loc, "3.8", f"\"{m.group(0)}\": não use \"se\" indeterminado. Use o imperativo.")
+        report.error(loc, "3.8", f"\"{m.group(0)}\": não use \"se\" passivo ou indeterminado. Use a voz ativa ou o imperativo.")
 
     m = TER_QUE.search(sent)
     if m:
@@ -645,7 +709,8 @@ def check_sentence(sent, mode, report, loc):
 
     m = VERBO_SUPORTE.search(sent)
     if m and m.group(1).lower() not in NAO_SUPORTE:
-        report.warn(loc, "3.7", f"verbo genérico + substantivo \"{m.group(0)}\": use o verbo direto.")
+        fn = report.error if tolerancia_zero else report.warn
+        fn(loc, "3.7", f"verbo genérico + substantivo \"{m.group(0)}\": use o verbo direto.")
 
     m = CADEIA_DE.search(sent)
     if m:
@@ -664,11 +729,12 @@ def check_sentence(sent, mode, report, loc):
         elif lw in VAGAS:
             report.error(loc, "1.16", f"\"{word}\" não é recomendado: {VAGAS[lw]}.")
         elif CONDICIONAL_GENERICO.match(lw) and lw not in NAO_CONDICIONAL:
-            report.warn(loc, "3.9", f"\"{word}\": confirme que não é futuro do pretérito.")
+            report.error(loc, "3.9", f"futuro do pretérito \"{word}\": use o presente, \"deve\" ou \"pode\".")
         elif IMPERFEITO_GENERICO.match(lw):
             report.warn(loc, "3.2", f"\"{word}\": confirme que não é pretérito imperfeito.")
         elif GERUNDIO.match(lw) and lw not in NAO_GERUNDIO:
-            report.warn(loc, "3.5", f"\"{word}\": o gerúndio é permitido somente em um nome técnico.")
+            fn = report.error if tolerancia_zero else report.warn
+            fn(loc, "3.5", f"gerúndio \"{word}\": use o infinitivo, o imperativo ou uma oração com 'quando' ou 'se'.")
 
 
 def check_vocab(text, report, approved):
@@ -681,12 +747,12 @@ def check_vocab(text, report, approved):
         report.unknown[lw] = report.unknown.get(lw, 0) + 1
 
 
-def check_paragraph(par, mode, report, loc, approved):
+def check_paragraph(par, mode, report, loc, approved, rigor="pragmatico"):
     sents = list(iter_sentences(par))
     if len(sents) > 6:
         report.error(loc, "6.6", f"parágrafo com {len(sents)} frases (máx. 6).")
     for s in sents:
-        check_sentence(s, mode, report, loc)
+        check_sentence(s, mode, report, loc, rigor=rigor)
     if approved:
         check_vocab(par, report, approved)
 
@@ -709,13 +775,22 @@ def check_text(raw_text, mode, report, name, approved, rigor="pragmatico"):
         # Item de lista vertical (regra 8.4)
         m_bullet = bullet.match(line)
         if m_bullet:
-            item_text = m_bullet.group(1).strip()
+            item_parts = [m_bullet.group(1).strip()]
             loc = f"{name}:{i + 1}"
+            i += 1
+            while i < n_lines:
+                curr = cleaned_lines[i]
+                curr_strip = curr.strip()
+                if not curr_strip or curr_strip.startswith("#") or curr_strip.startswith("|") or bullet.match(curr):
+                    break
+                item_parts.append(curr_strip)
+                i += 1
+
+            item_text = " ".join(item_parts)
             for s in iter_sentences(item_text):
-                check_sentence(s, mode, report, loc)
+                check_sentence(s, mode, report, loc, rigor=rigor)
             if approved and rigor == "estrito":
                 check_vocab(item_text, report, approved)
-            i += 1
             continue
 
         # Parágrafo contínuo
@@ -732,7 +807,7 @@ def check_text(raw_text, mode, report, name, approved, rigor="pragmatico"):
         par_text = " ".join(par_parts)
         if par_text and WORDISH.search(par_text):
             loc = f"{name}:{par_start}"
-            check_paragraph(par_text, mode, report, loc, approved if rigor == "estrito" else None)
+            check_paragraph(par_text, mode, report, loc, approved if rigor == "estrito" else None, rigor=rigor)
 
 
 # ------------------------------------------------------------------ principal
@@ -741,6 +816,8 @@ def check_text(raw_text, mode, report, name, approved, rigor="pragmatico"):
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="Verifica um texto com as regras de escrita do PTS.")
     ap.add_argument("arquivos", nargs="*", help="arquivos para verificar (padrão: entrada padrão)")
     ap.add_argument("--modo", choices=["procedimento", "descritivo", "misto"],
@@ -770,7 +847,18 @@ def main():
 
     report = Report()
     if args.arquivos:
-        for f in args.arquivos:
+        expanded_files = []
+        for pattern in args.arquivos:
+            if any(ch in pattern for ch in ("*", "?", "[")):
+                matches = glob.glob(pattern)
+                if matches:
+                    expanded_files.extend(matches)
+                else:
+                    expanded_files.append(pattern)
+            else:
+                expanded_files.append(pattern)
+
+        for f in expanded_files:
             p = Path(f)
             if not p.exists():
                 print(f"Erro: arquivo não encontrado: {f}", file=sys.stderr)

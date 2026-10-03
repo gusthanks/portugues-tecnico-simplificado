@@ -54,14 +54,14 @@ Os dois tipos têm limites diferentes. Não misture os dois tipos no mesmo pará
 - Se não houver um agente, use "você" ou "nós" como sujeito.
 - Use somente "poder" (possibilidade) e "dever" (obrigação) como verbos auxiliares. Use "dever" somente para obrigação, nunca para probabilidade.
 - Não use o futuro do pretérito. Não escreva "deveria", "poderia", "seria" ou "teria".
-- "Estar" + particípio mostra um estado e é permitido. "Os fios estão desconectados." "Ser" + particípio é voz passiva e não é permitido.
+- Você pode usar "estar" + particípio para indicar um estado: "Os fios estão desconectados." Não use "ser" + particípio, pois essa construção indica voz passiva.
 
 ## Passo 3: Obedeça às regras de frase
 
 - Frases de procedimento: no máximo 20 palavras.
 - Frases descritivas: no máximo 25 palavras.
 - Parágrafos: no máximo 6 frases e somente um assunto.
-- Escreva somente uma instrução em cada frase. Duas ações são permitidas somente quando ocorrem ao mesmo tempo.
+- Escreva somente uma instrução em cada frase. Você pode escrever duas ações somente quando elas ocorrem ao mesmo tempo.
 - Escreva somente um assunto em cada frase.
 - Use a ordem direta: sujeito, verbo, complemento.
 - Quando uma condição vem antes de uma ordem, coloque uma vírgula depois da condição. "Se a luz acender, pare o motor."
@@ -178,7 +178,7 @@ Você também deve comparar as suas palavras com `references/vocabulario.md`.
 
 - `references/regras-de-escrita.md`: todas as regras e recomendações, com exemplos. Leia este arquivo quando você reescrever um documento ou quando uma regra não estiver clara.
 - `references/vocabulario.md`: o vocabulário recomendado, com classes gramaticais e formas irregulares.
-- `references/substituicoes.md`: substituições para palavras frequentes que não são recomendadas, e as categorias de nomes técnicos e de verbos técnicos.
+- `references/substituicoes.md`: substituições para palavras frequentes que o PTS não recomenda, e as categorias de nomes técnicos e de verbos técnicos.
 - `examples/antes-depois.md`: exemplos de texto antes e depois da mudança para PTS.
 - `examples/comunicacao-agentes-hermes.md`: exemplos de transferência entre agentes no Hermes, diagramas Mermaid e tabelas de diagnóstico.
 

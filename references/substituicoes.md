@@ -2,7 +2,7 @@
 
 Este arquivo tem seis partes:
 
-- Parte 1: substituições para palavras e expressões frequentes que não são recomendadas
+- Parte 1: substituições para palavras e expressões frequentes que o PTS não recomenda
 - Parte 2: substituições para estrangeirismos desnecessários
 - Parte 3: as 19 categorias de nomes técnicos
 - Parte 4: as 4 categorias de verbos técnicos
@@ -73,7 +73,7 @@ Se uma substituição palavra por palavra mudar o sentido, use uma construção 
 | tão logo | quando, logo que |
 | visualizar | ver |
 
-NOTA: Os verbos "efetuar" e "realizar" são permitidos com o sentido de "tornar real" em textos descritivos. Em procedimentos, use o verbo direto.
+NOTA: Você pode usar os verbos "efetuar" e "realizar" com o sentido de "tornar real" em textos descritivos. Em procedimentos, use o verbo direto.
 
 ## Parte 2: Estrangeirismos desnecessários
 
@@ -149,7 +149,7 @@ Regras para verbos técnicos:
 
 - Use um verbo do vocabulário se ele existir. Escreva "encontrar", e não "detectar", em um procedimento.
 - Não transforme um verbo técnico em substantivo genérico (regra 1.13).
-- O particípio de um verbo técnico é permitido como adjetivo. Exemplo: "o furo alargado".
+- Você pode usar o particípio de um verbo técnico como adjetivo. Exemplo: "o furo alargado".
 
 ## Parte 5: Expressões prolixas e vícios de IA (Filtro Anti-Slop / Hermes)
 
