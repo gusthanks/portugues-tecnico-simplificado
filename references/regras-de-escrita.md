@@ -7,7 +7,7 @@ As regras marcadas com **[PT]** não existem no ASD-STE100. Elas tratam de probl
 
 ## Conteúdo
 
-- Seção 1: Palavras (regras 1.1 a 1.16)
+- Seção 1: Palavras (regras 1.1 a 1.17)
 - Seção 2: Sequências de complementos (regras 2.1 a 2.3)
 - Seção 3: Verbos (regras 3.1 a 3.10)
 - Seção 4: Frases (regras 4.1 a 4.6)
@@ -16,6 +16,8 @@ As regras marcadas com **[PT]** não existem no ASD-STE100. Elas tratam de probl
 - Seção 7: Avisos de segurança (regras 7.1 a 7.3)
 - Seção 8: Pontuação e contagem de palavras (regras 8.1 a 8.7)
 - Seção 9: Práticas de redação (regras 9.1 a 9.4)
+- Seção 10: Estruturas visuais e diagramas (regras 10.1 a 10.3)
+- Seção 11: Protocolo para agentes no Hermes (regras 11.1 a 11.3)
 - Recomendações gerais (RG-1 a RG-5)
 
 Nos exemplos, "Não PTS" mostra um texto incorreto. "PTS" mostra um texto correto.
@@ -72,6 +74,14 @@ Nos exemplos, "Não PTS" mostra um texto incorreto. "PTS" mostra um texto corret
 **Regra 1.16** **[PT]**: Não use palavras de significado vago ou de excesso formal. Consulte `substituicoes.md`.
 - Não PTS: "Procede-se à efetivação do aludido procedimento."
 - PTS: "Faça este procedimento."
+
+**Regra 1.17** **[PT]** **[Hermes]**: Não use preenchimento vazio, saudações de cortesia, clichês de transição ou emojis em texto técnico.
+- Não use aberturas de cortesia como "Certamente!", "Com certeza!" ou "Olá!". Escreva a informação técnica diretamente.
+- Não use clichês de transição como "Vale destacar que", "É importante notar que" ou "Cabe ressaltar que". Remova a locução e declare o fato.
+- Não use conclusões genéricas como "Espero ter ajudado!" ou "Em suma". Termine o texto logo após a última instrução técnica.
+- Não use emojis em procedimentos técnicos ou mensagens entre agentes.
+- Não PTS: "Certamente! Vale destacar que o cluster foi criado. Espero ter ajudado!"
+- PTS: "O cluster está pronto para uso."
 
 ## Seção 2: Sequências de complementos
 
@@ -250,6 +260,41 @@ Uma advertência mostra um risco de lesão ou de morte de pessoas. Um cuidado mo
 - Não PTS: "levar em consideração". PTS: "considerar".
 
 **Regra 9.4**: Use um estilo consistente. Em procedimentos, use as mesmas palavras para o mesmo tipo de passo e o mesmo nome para o mesmo item. Em textos descritivos, mudanças de construção são permitidas para deixar o texto fácil de ler.
+
+## Seção 10: Estruturas visuais e além do texto puro
+
+**Regra 10.1**: Quando um procedimento ou diagnóstico tiver mais de duas condições de decisão, faça um diagrama Mermaid.
+- Use `flowchart TD` ou `flowchart LR`.
+- Diagramas facilitam o entendimento de fluxos complexos por humanos e agentes.
+
+**Regra 10.2**: Aplique as regras de escrita do PTS dentro dos nós dos diagramas.
+- Escreva frases curtas na ordem direta.
+- Não use gerúndio nem voz passiva nos nós dos diagramas.
+
+**Regra 10.3**: Em diagnósticos e solução de falhas, use uma tabela estruturada de três colunas:
+- Coluna 1: Sintoma ou condição encontrada.
+- Coluna 2: Causa provável da falha.
+- Coluna 3: Ação corretiva com verbos no imperativo.
+
+## Seção 11: Protocolo para agentes no Hermes
+
+**Regra 11.1**: Ao transferir tarefas entre agentes no Hermes (handoff), use a estrutura de quatro campos:
+- **Objetivo**: declare a meta em uma frase direta.
+- **Status**: informe o estado atual da tarefa.
+- **Contexto ou Dados**: liste valores e identificadores técnicos.
+- **Ação Requerida**: declare a ordem direta no imperativo para o próximo agente.
+
+**Regra 11.2**: Ao revisar textos, apresente a comparação em modo Diff com justificativa:
+- Mostre o texto original.
+- Mostre o texto revisado em PTS.
+- Indique cada regra aplicada e a justificativa da alteração.
+
+**Regra 11.3**: Execute o ciclo de auto-correção do agente (Self-Linting Loop):
+1. Escreva o rascunho do texto técnico.
+2. Execute a ferramenta de verificação com a linha de comando do projeto.
+3. Corrija cada erro apontado no relatório.
+4. Verifique o texto de novo.
+5. Entregue a resposta somente quando a ferramenta indicar zero erros.
 
 ## Recomendações gerais
 

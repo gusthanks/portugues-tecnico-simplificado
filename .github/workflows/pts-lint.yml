@@ -1,0 +1,29 @@
+name: PTS Linter & Testes
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    name: Validação PTS e Testes Unitários
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Executar testes unitários
+        run: |
+          python -m unittest discover tests
+
+      - name: Validar arquivos Markdown com o linter PTS
+        run: |
+          python scripts/pts_check.py --rigor pragmatico --formato agente SKILL.md README.md references/regras-de-escrita.md references/substituicoes.md examples/*.md

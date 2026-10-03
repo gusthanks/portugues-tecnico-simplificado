@@ -5,16 +5,23 @@ Esta ferramenta encontra violações das regras de escrita do PTS em texto ou Ma
 Ela usa somente a biblioteca padrão do Python 3.
 
 Uso:
-    python pts_check.py [--modo procedimento|descritivo|misto] ARQUIVO...
-    type rascunho.txt | python pts_check.py --modo procedimento
+    python pts_check.py [--modo procedimento|descritivo|misto]
+                        [--rigor pragmatico|estrito]
+                        [--formato texto|json|agente]
+                        [--vocabulario CAMINHO]
+                        [--sem-vocabulario]
+                        ARQUIVO...
 
-A ferramenta ignora blocos de código, código em linha, URLs, citações e o
-cabeçalho YAML. Código de saída 0 = sem erros. Código de saída 1 = um ou mais erros.
+    type rascunho.txt | python pts_check.py --modo procedimento --formato agente
+
+A ferramenta ignora blocos de código, código em linha, URLs, citações e cabeçalho YAML.
+Código de saída 0 = sem erros. Código de saída 1 = um ou mais erros.
 
 Adaptado de ste_check.py (simplified-technical-english, de 0xpili, licença MIT).
 """
 
 import argparse
+import json
 import re
 import sys
 import unicodedata
@@ -189,13 +196,68 @@ VERBO_SUPORTE = re.compile(
     r"(?:a|o|as|os|à|ao|às|aos|uma|um)\s+([^\W\d_]+(?:ção|ções|mento|mentos|agem|agens|são|sões))\b",
     re.IGNORECASE,
 )
-NAO_SUPORTE = {"procedimento", "procedimentos", "documento", "documentos", "equipamento", "equipamentos", "versão", "sessão", "conexão"}
+NAO_SUPORTE = {
+    "procedimento", "procedimentos", "documento", "documentos", "equipamento",
+    "equipamentos", "versão", "sessão", "conexão",
+}
 CADEIA_DE = re.compile(
     r"(?:\b(?:de|do|da|dos|das)\s+[^\W\d_]+\s+){3}(?:de|do|da|dos|das)\s+[^\W\d_]+",
     re.IGNORECASE,
 )
 
+# Regra 1.17: Filtro anti-slop e economia de tokens de IA (Hermes / Karpathy)
+SLOP_ABERTURA = re.compile(
+    r"^(?:"
+    r"certamente|"
+    r"com\s+certeza|"
+    r"com\s+prazer|"
+    r"com\s+todo\s+o\s+prazer|"
+    r"olá|"
+    r"oi|"
+    r"saudações|"
+    r"como\s+uma?\s+(?:ia|modelo\s+de\s+linguagem|assistente)|"
+    r"claro\s+que\s+sim|"
+    r"sem\s+dúvida"
+    r")(?:\s*[,!.]|\s*$)",
+    re.IGNORECASE,
+)
+
+SLOP_TRANSICAO = re.compile(
+    r"\b(?:"
+    r"vale\s+(?:destacar|ressaltar|lembrar|notar|pontuar|mencionar|frisar)|"
+    r"é\s+(?:importante|crucial|fundamental|essencial|relevante|válido|vital)\s+(?:notar|destacar|ressaltar|lembrar|frisar|mencionar|pontuar|ter\s+em\s+mente)|"
+    r"cabe\s+(?:destacar|ressaltar|lembrar|notar|mencionar|pontuar)|"
+    r"importante\s+(?:notar|destacar|ressaltar|lembrar|frisar|mencionar)|"
+    r"convém\s+(?:notar|lembrar|destacar|ressaltar)"
+    r")\s+que\b",
+    re.IGNORECASE,
+)
+
+SLOP_FECHAMENTO = re.compile(
+    r"\b(?:"
+    r"em\s+suma|"
+    r"espero\s+(?:ter\s+ajudado|que\s+(?:isso\s+)?ajude)|"
+    r"(?:fique|sinta-se)\s+à\s+vontade\s+para|"
+    r"estou\s+à\s+disposição|"
+    r"(?:se|caso)\s+(?:você\s+)?(?:tiver|tenha)\s+(?:alguma\s+)?dúvida|"
+    r"qualquer\s+dúvida[,\s]|"
+    r"restou\s+alguma\s+dúvida"
+    r")\b",
+    re.IGNORECASE,
+)
+
 # ------------------------------------------------------------------ auxiliares
+
+
+def contem_emoji(texto):
+    """Detecta emojis em texto técnico."""
+    for ch in texto:
+        cp = ord(ch)
+        if 0x1F300 <= cp <= 0x1FAFF or 0x2600 <= cp <= 0x27BF or 0xFE00 <= cp <= 0xFE0F:
+            return True
+        if unicodedata.category(ch) in ("So", "Sk") and cp > 0x2000:
+            return True
+    return False
 
 
 def sem_acento(s):
@@ -231,6 +293,53 @@ def strip_markdown(text):
     return text
 
 
+def clean_markdown_lines(raw_text):
+    """Substitui blocos não controlados por linhas vazias mantendo os números de linha exatos."""
+    raw_text = raw_text.replace("\r\n", "\n")
+    lines = raw_text.split("\n")
+    cleaned = []
+    in_yaml = False
+    in_code = False
+
+    for idx, line in enumerate(lines):
+        stripped = line.strip()
+        # Cabeçalho YAML
+        if idx == 0 and stripped == "---":
+            in_yaml = True
+            cleaned.append("")
+            continue
+        if in_yaml:
+            if stripped == "---":
+                in_yaml = False
+            cleaned.append("")
+            continue
+
+        # Blocos de código
+        if stripped.startswith("```"):
+            in_code = not in_code
+            cleaned.append("")
+            continue
+        if in_code:
+            cleaned.append("")
+            continue
+
+        # Citações (regra: ignora citações)
+        if stripped.startswith(">"):
+            cleaned.append("")
+            continue
+
+        # Linha de texto comum
+        l = line
+        l = re.sub(r"`[^`\n]+`", " CODE ", l)
+        l = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", l)
+        l = re.sub(r"https?://\S+", " URL ", l)
+        l = re.sub(r"^>\s?", " ", l)
+        l = re.sub(r"\"[^\"\n]*\"|“[^”\n]*”|«[^»\n]*»", " QUOTED ", l)
+        cleaned.append(l)
+
+    return cleaned
+
+
 def count_words(sentence):
     """Conta palavras com as convenções da seção 8."""
     s = re.sub(r"\([^)]*\)", " PAREN ", sentence)  # regra 8.5
@@ -241,7 +350,7 @@ def count_words(sentence):
 def iter_sentences(block):
     for part in SENT_SPLIT.split(block):
         part = part.strip()
-        if part and WORDISH.search(part):
+        if part and (WORDISH.search(part) or contem_emoji(part)):
             yield part
 
 
@@ -309,8 +418,8 @@ def _conjugar(inf):
         elif s.endswith("ç"):
             se = s[:-1] + "c"
         out |= {s + x for x in ("o", "a", "am", "amos", "ou", "aram", "ará", "arão",
-                                  "aremos", "arei", "ar", "arem", "armos",
-                                  "ado", "ada", "ados", "adas")}
+                                "aremos", "arei", "ar", "arem", "armos",
+                                "ado", "ada", "ados", "adas")}
         out |= {se + x for x in ("ei", "e", "em", "emos")}
     elif t == "er":
         sa = s
@@ -319,14 +428,14 @@ def _conjugar(inf):
         elif s.endswith("g"):
             sa = s[:-1] + "j"
         out |= {s + x for x in ("e", "em", "emos", "i", "eu", "eram", "erá", "erão",
-                                  "eremos", "erei", "er", "erem", "ermos",
-                                  "ido", "ida", "idos", "idas")}
+                                "eremos", "erei", "er", "erem", "ermos",
+                                "ido", "ida", "idos", "idas")}
         out |= {sa + x for x in ("o", "a", "am", "amos")}
     elif t == "ir":
         if s.endswith("u") and not s.endswith(("gu", "qu")):
             out |= {s + x for x in ("o", "i", "em", "ímos", "í", "iu", "íram", "irá",
-                                      "irão", "iremos", "irei", "a", "am", "amos",
-                                      "ir", "írem", "irmos", "ído", "ída", "ídos", "ídas")}
+                                    "irão", "iremos", "irei", "a", "am", "amos",
+                                    "ir", "írem", "irmos", "ído", "ída", "ídos", "ídas")}
             return out
         sa = s
         if s.endswith(("gu", "qu")):
@@ -336,8 +445,8 @@ def _conjugar(inf):
         elif s.endswith("c"):
             sa = s[:-1] + "ç"
         out |= {s + x for x in ("e", "em", "imos", "i", "iu", "iram", "irá", "irão",
-                                  "iremos", "irei", "ir", "irem", "irmos",
-                                  "ido", "ida", "idos", "idas")}
+                                "iremos", "irei", "ir", "irem", "irmos",
+                                "ido", "ida", "idos", "idas")}
         out |= {sa + x for x in ("o", "a", "am", "amos")}
     return out
 
@@ -405,11 +514,65 @@ class Report:
     def warn(self, loc, rule, msg):
         self.warnings.append((loc, rule, msg))
 
+    def to_dict(self):
+        return {
+            "valido": len(self.errors) == 0,
+            "total_erros": len(self.errors),
+            "total_avisos": len(self.warnings),
+            "erros": [
+                {"local": loc, "regra": rule, "tipo": "erro", "mensagem": msg}
+                for loc, rule, msg in self.errors
+            ],
+            "avisos": [
+                {"local": loc, "regra": rule, "tipo": "aviso", "mensagem": msg}
+                for loc, rule, msg in self.warnings
+            ],
+            "palavras_desconhecidas": sorted(self.unknown, key=self.unknown.get, reverse=True) if self.unknown else [],
+        }
+
+    def print_text(self, rigor="pragmatico"):
+        for loc, rule, msg in self.errors:
+            print(f"ERRO    {loc} [regra {rule}] {msg}")
+        for loc, rule, msg in self.warnings:
+            print(f"AVISO   {loc} [regra {rule}] {msg}")
+        if self.unknown and rigor == "estrito":
+            words = sorted(self.unknown, key=self.unknown.get, reverse=True)
+            print(f"\nCONFERIR {len(words)} palavras não estão no vocabulário.")
+            print("         Cada uma deve ser um nome técnico ou um verbo técnico:")
+            for chunk in [words[i:i + 10] for i in range(0, len(words), 10)]:
+                print("         " + ", ".join(chunk))
+
+        print(f"\nResultado: {len(self.errors)} erros, {len(self.warnings)} avisos.")
+        if not self.errors:
+            print("O texto obedece às regras estruturais do PTS que esta ferramenta pode verificar.")
+            print("Esta ferramenta não sabe se cada palavra tem o sentido correto.")
+
+    def print_agent(self, rigor="pragmatico"):
+        for loc, rule, msg in self.errors:
+            print(f"[ERRO] {loc} (regra {rule}): {msg}")
+        for loc, rule, msg in self.warnings:
+            print(f"[AVISO] {loc} (regra {rule}): {msg}")
+        if self.unknown and rigor == "estrito":
+            words = sorted(self.unknown, key=self.unknown.get, reverse=True)
+            amostra = ", ".join(words[:15])
+            print(f"[INFO] {len(words)} palavras fora do vocabulário: {amostra}")
+        if not self.errors and not self.warnings:
+            print("STATUS: OK (0 erros, 0 avisos)")
+        elif not self.errors:
+            print(f"STATUS: OK_COM_AVISOS (0 erros, {len(self.warnings)} avisos)")
+        else:
+            print(f"STATUS: ERRO ({len(self.errors)} erros, {len(self.warnings)} avisos)")
+
+    def print_json(self):
+        print(json.dumps(self.to_dict(), ensure_ascii=False, indent=2))
+
 
 def check_sentence(sent, mode, report, loc):
     limit = LIMITES[mode]
     n = count_words(sent)
     head = sent if len(sent) <= 60 else sent[:57] + "..."
+
+    # Limites de palavras
     if n > 25:
         report.error(loc, "5.1/6.3", f"frase com {n} palavras (máx. {limit}): \"{head}\"")
     elif n > 20:
@@ -418,9 +581,27 @@ def check_sentence(sent, mode, report, loc):
         elif mode == "misto":
             report.warn(loc, "5.1", f"frase com {n} palavras (máx. 20 em procedimento): \"{head}\"")
 
+    # Ponto e vírgula
     if ";" in sent:
         report.error(loc, "8.1", f"ponto e vírgula: \"{head}\". Escreva duas frases.")
 
+    # Regra 1.17: Filtro anti-slop e economia de tokens (Hermes / Karpathy)
+    if contem_emoji(sent):
+        report.error(loc, "1.17", f"emoji detectado: \"{head}\". Não use emojis em procedimentos ou comunicação técnica.")
+
+    m_abertura = SLOP_ABERTURA.search(sent.strip())
+    if m_abertura:
+        report.error(loc, "1.17", f"abertura de cortesia \"{m_abertura.group(0).strip()}\": seja direto, remova a saudação.")
+
+    m_trans = SLOP_TRANSICAO.search(sent)
+    if m_trans:
+        report.error(loc, "1.17", f"clichê de transição \"{m_trans.group(0)}\": remova o meta-comentário e escreva o fato diretamente.")
+
+    m_fech = SLOP_FECHAMENTO.search(sent)
+    if m_fech:
+        report.error(loc, "1.17", f"fechamento prolixo \"{m_fech.group(0)}\": remova a frase vazia.")
+
+    # Estruturas verbais complexas
     m = TEMPO_COMPOSTO.search(sent)
     if m and parece_participio(m.group(1)):
         report.error(loc, "3.4", f"tempo composto \"{m.group(0)}\": use o pretérito perfeito.")
@@ -510,28 +691,48 @@ def check_paragraph(par, mode, report, loc, approved):
         check_vocab(par, report, approved)
 
 
-def check_text(text, mode, report, name, approved):
-    text = strip_markdown(text)
-    bullet = re.compile(r"\s*(?:[-*+]|\d+\.)\s")
-    for i, par in enumerate(re.split(r"\n\s*\n", text)):
-        par = par.strip()
-        if not par or not WORDISH.search(par):
+def check_text(raw_text, mode, report, name, approved, rigor="pragmatico"):
+    cleaned_lines = clean_markdown_lines(raw_text)
+    bullet = re.compile(r"^\s*(?:[-*+]|\d+\.)\s+(.*)")
+
+    i = 0
+    n_lines = len(cleaned_lines)
+    while i < n_lines:
+        line = cleaned_lines[i]
+        stripped = line.strip()
+
+        # Linha vazia, cabeçalho markdown (#) ou tabela (|) conta como título
+        if not stripped or stripped.startswith("#") or stripped.startswith("|"):
+            i += 1
             continue
-        # um título ou uma linha de tabela conta como título (regra 8.6)
-        if par.startswith("#") or par.startswith("|"):
+
+        # Item de lista vertical (regra 8.4)
+        m_bullet = bullet.match(line)
+        if m_bullet:
+            item_text = m_bullet.group(1).strip()
+            loc = f"{name}:{i + 1}"
+            for s in iter_sentences(item_text):
+                check_sentence(s, mode, report, loc)
+            if approved and rigor == "estrito":
+                check_vocab(item_text, report, approved)
+            i += 1
             continue
-        lines = par.splitlines()
-        items = [l for l in lines if bullet.match(l)]
-        prose = [l for l in lines if not bullet.match(l)]
-        # um item de lista conta como uma frase (regra 8.4)
-        for l in items:
-            item = re.sub(r"^\s*(?:[-*+]|\d+\.)\s+", "", l)
-            for s in iter_sentences(item):
-                check_sentence(s, mode, report, f"{name}:lista")
-            if approved:
-                check_vocab(item, report, approved)
-        if prose:
-            check_paragraph("\n".join(prose), mode, report, f"{name}:par{i + 1}", approved)
+
+        # Parágrafo contínuo
+        par_start = i + 1
+        par_parts = []
+        while i < n_lines:
+            curr = cleaned_lines[i]
+            curr_strip = curr.strip()
+            if not curr_strip or curr_strip.startswith("#") or curr_strip.startswith("|") or bullet.match(curr):
+                break
+            par_parts.append(curr.strip())
+            i += 1
+
+        par_text = " ".join(par_parts)
+        if par_text and WORDISH.search(par_text):
+            loc = f"{name}:{par_start}"
+            check_paragraph(par_text, mode, report, loc, approved if rigor == "estrito" else None)
 
 
 # ------------------------------------------------------------------ principal
@@ -544,14 +745,22 @@ def main():
     ap.add_argument("arquivos", nargs="*", help="arquivos para verificar (padrão: entrada padrão)")
     ap.add_argument("--modo", choices=["procedimento", "descritivo", "misto"],
                     default="misto", help="tipo de texto (padrão: misto)")
+    ap.add_argument("--rigor", choices=["estrito", "pragmatico"],
+                    default="pragmatico", help="nível de rigor: pragmatico (software/agentes, padrão) ou estrito (indústria/aeroespacial)")
+    ap.add_argument("--formato", choices=["texto", "json", "agente"],
+                    default="texto", help="formato de saída: texto (padrão), json ou agente")
     ap.add_argument("--vocabulario", default=None,
                     help="caminho para vocabulario.md (padrão: ../references/vocabulario.md)")
     ap.add_argument("--sem-vocabulario", action="store_true",
                     help="não compara as palavras com o vocabulário")
     args = ap.parse_args()
 
+    rigor = args.rigor
+    if args.sem_vocabulario:
+        rigor = "pragmatico"
+
     approved = None
-    if not args.sem_vocabulario:
+    if rigor == "estrito":
         wl = args.vocabulario
         if wl is None:
             default = Path(__file__).resolve().parent.parent / "references" / "vocabulario.md"
@@ -562,26 +771,22 @@ def main():
     report = Report()
     if args.arquivos:
         for f in args.arquivos:
-            check_text(Path(f).read_text(encoding="utf-8"), args.modo, report, f, approved)
+            p = Path(f)
+            if not p.exists():
+                print(f"Erro: arquivo não encontrado: {f}", file=sys.stderr)
+                return 1
+            check_text(p.read_text(encoding="utf-8"), args.modo, report, f, approved, rigor=rigor)
     else:
         data = sys.stdin.buffer.read().decode("utf-8", errors="replace")
-        check_text(data, args.modo, report, "entrada", approved)
+        check_text(data, args.modo, report, "entrada", approved, rigor=rigor)
 
-    for loc, rule, msg in report.errors:
-        print(f"ERRO    {loc} [regra {rule}] {msg}")
-    for loc, rule, msg in report.warnings:
-        print(f"AVISO   {loc} [regra {rule}] {msg}")
-    if report.unknown:
-        words = sorted(report.unknown, key=report.unknown.get, reverse=True)
-        print(f"\nCONFERIR {len(words)} palavras não estão no vocabulário.")
-        print("         Cada uma deve ser um nome técnico ou um verbo técnico:")
-        for chunk in [words[i:i + 10] for i in range(0, len(words), 10)]:
-            print("         " + ", ".join(chunk))
+    if args.formato == "json":
+        report.print_json()
+    elif args.formato == "agente":
+        report.print_agent(rigor=rigor)
+    else:
+        report.print_text(rigor=rigor)
 
-    print(f"\nResultado: {len(report.errors)} erros, {len(report.warnings)} avisos.")
-    if not report.errors:
-        print("O texto obedece às regras estruturais do PTS que esta ferramenta pode verificar.")
-        print("Esta ferramenta não sabe se cada palavra tem o sentido correto.")
     return 1 if report.errors else 0
 
 

@@ -5,6 +5,7 @@ O PTS é uma linguagem controlada para documentação técnica em português do 
 A especificação ASD-STE100 inspirou as regras do PTS.
 Nós adaptamos essas regras para a gramática e para os problemas comuns do português.
 Um texto em PTS é claro, direto e fácil de entender.
+Esta skill é ideal para documentação de software e para equipes de agentes no Hermes.
 
 A própria documentação desta skill obedece às regras do PTS. Este README está em PTS.
 
@@ -27,12 +28,15 @@ Texto depois da mudança:
 
 | Arquivo | Função |
 |---|---|
-| `SKILL.md` | As instruções principais para o LLM |
+| `SKILL.md` | As instruções principais para o modelo de linguagem |
 | `references/regras-de-escrita.md` | Todas as regras de escrita com exemplos |
 | `references/vocabulario.md` | O vocabulário recomendado com formas e classes |
-| `references/substituicoes.md` | Substituições para termos burocráticos e estrangeirismos |
+| `references/substituicoes.md` | Substituições para termos burocráticos e termos de IA |
 | `examples/antes-depois.md` | Exemplos de textos antes e depois da mudança |
+| `examples/comunicacao-agentes-hermes.md` | Exemplos de handoff entre agentes, diffs e diagramas |
 | `scripts/pts_check.py` | Ferramenta de verificação das regras em Python |
+| `tests/test_pts_check.py` | Suíte de testes automatizados da ferramenta |
+| `.github/workflows/pts-lint.yml` | Validação contínua com GitHub Actions |
 | `NOTICE.md` | Informações de direitos autorais e referências |
 
 ## Como instalar a skill
@@ -49,6 +53,12 @@ git clone https://github.com/gusthanks/portugues-tecnico-simplificado.git ~/.cla
 3. O Claude encontra a skill e obedece às regras.
 
 Você também pode chamar a skill diretamente: `/portugues-tecnico-simplificado`.
+
+### No Hermes / Equipes de Agentes
+
+1. Adicione este repositório ou o arquivo `SKILL.md` às ferramentas do seu agente no Hermes.
+2. Agentes de documentação e revisão usam o ciclo de auto-correção com `--formato agente`.
+3. Agentes comunicam tarefas com o cabeçalho estruturado de handoff, sem saudações ou palavras vazias.
 
 ### No Antigravity / Gemini
 
@@ -70,23 +80,43 @@ git clone https://github.com/gusthanks/portugues-tecnico-simplificado.git ~/.gem
 Execute a ferramenta de verificação em um arquivo ou na entrada padrão:
 
 ```bash
-python scripts/pts_check.py --modo procedimento rascunho.txt
-python scripts/pts_check.py --modo descritivo capitulo.md
-python scripts/pts_check.py --modo misto documento.md
+# Modo padrão (software e agentes, rigor pragmático)
+python scripts/pts_check.py rascunho.md
+
+# Formato compacto para consumo por agentes no Hermes
+python scripts/pts_check.py --formato agente rascunho.md
+
+# Saída estruturada em JSON
+python scripts/pts_check.py --formato json rascunho.md
+
+# Modo estrito com vocabulário fechado (aeroespacial e manufatura)
+python scripts/pts_check.py --rigor estrito manual.md
 ```
 
-A ferramenta encontra estes erros:
+A ferramenta encontra estas violações:
 
-- Frases com muitas palavras (mais de 20 em procedimento ou mais de 25 em texto descritivo)
+- Frases longas (mais de 20 palavras em procedimento ou mais de 25 em texto descritivo)
 - Parágrafos com mais de seis frases
 - Ponto e vírgula e mesóclises
 - Locuções com gerúndio e tempos compostos
 - Voz passiva e voz passiva com "-se"
 - Futuro do pretérito ("deveria", "poderia") e pretérito imperfeito
+- Vícios de IA (saudações de cortesia, clichês de transição, conclusões genéricas e emojis)
 - Palavras não recomendadas ou termos coloquiais
-- Palavras fora do vocabulário recomendado.
+- Palavras fora do vocabulário recomendado (no modo estrito).
 
 A ferramenta usa somente a biblioteca padrão do Python 3.
+
+## Validação Contínua (CI)
+
+O repositório inclui automação com GitHub Actions (`.github/workflows/pts-lint.yml`).
+O fluxo executa a suíte de testes unitários e valida todos os arquivos Markdown a cada push e pull request.
+
+Para rodar os testes localmente:
+
+```bash
+python -m unittest discover tests
+```
 
 ## Limites da skill
 

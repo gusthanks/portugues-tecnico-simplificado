@@ -1,11 +1,13 @@
 # Substituições e categorias técnicas
 
-Este arquivo tem quatro partes:
+Este arquivo tem seis partes:
 
 - Parte 1: substituições para palavras e expressões frequentes que não são recomendadas
 - Parte 2: substituições para estrangeirismos desnecessários
 - Parte 3: as 19 categorias de nomes técnicos
-- Parte 4: as 4 categorias de verbos técnicos.
+- Parte 4: as 4 categorias de verbos técnicos
+- Parte 5: expressões prolixas e vícios de IA (Filtro Anti-Slop / Hermes)
+- Parte 6: termos técnicos permitidos no modo pragmático (software e agentes).
 
 ## Parte 1: Substituições para palavras e expressões frequentes
 
@@ -148,3 +150,29 @@ Regras para verbos técnicos:
 - Use um verbo do vocabulário se ele existir. Escreva "encontrar", e não "detectar", em um procedimento.
 - Não transforme um verbo técnico em substantivo genérico (regra 1.13).
 - O particípio de um verbo técnico é permitido como adjetivo. Exemplo: "o furo alargado".
+
+## Parte 5: Expressões prolixas e vícios de IA (Filtro Anti-Slop / Hermes)
+
+Em sistemas de agentes e documentação técnica, elimine saudações, clichês e preenchimentos vazios.
+
+| Vício de IA ou expressão prolixa | Ação recomendada em PTS |
+|---|---|
+| Certamente!, Com certeza!, Com prazer!, Com todo o prazer! | Remova a saudação. Comece direto com a resposta técnica. |
+| Olá!, Saudações!, Como uma IA... | Remova a saudação ou justificativa. |
+| Vale destacar que, Vale ressaltar que, Vale lembrar que | Remova a locução. Escreva o fato diretamente. |
+| É importante notar que, É crucial notar que, Cabe ressaltar que | Remova a locução. Escreva o fato diretamente. |
+| Em suma, Em resumo (no encerramento) | Remova a conclusão. Conclua no último passo do procedimento. |
+| Espero ter ajudado!, Espero que isso ajude! | Remova a frase. Ela não adiciona informação técnica. |
+| Fique à vontade para perguntar, Estou à disposição | Remova a frase. |
+| Qualquer dúvida, entre em contato, Restou alguma dúvida? | Remova a frase. |
+| Emojis em geral (foguetes, lâmpadas, alertas gráficos) | Não use emojis. Use palavras técnicas claras. |
+
+## Parte 6: Termos técnicos permitidos no modo pragmático (Software e Agentes)
+
+No modo pragmático (`--rigor pragmatico`), a ferramenta aceita estes termos técnicos comuns sem alerta de vocabulário:
+
+- Infraestrutura e contêineres: cluster, node, pod, docker, kubernetes, namespace, ingress, daemonset, helm.
+- Versionamento e CI/CD: commit, branch, merge, pull request, checkout, pipeline, workflow, build, deploy, release.
+- Desenvolvimento e redes: backend, frontend, endpoint, payload, webhook, token, jwt, api, rest, grpc, json, yaml.
+- Armazenamento e dados: database, redis, postgres, schema, query, cache, replica, bucket.
+- Agentes e inteligência artificial: prompt, agent, hermes, context, tokens, lint, benchmark.

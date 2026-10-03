@@ -5,7 +5,7 @@ license: MIT. Adaptação para o português do Brasil da skill simplified-techni
 metadata:
   idioma: pt-BR
   inspiracao: ASD-STE100 Issue 7 (2017), adaptado para a gramática do português
-  versao: 1.0.0
+  versao: 1.1.0
 ---
 
 # Português Técnico Simplificado (PTS)
@@ -91,18 +91,76 @@ Os dois tipos têm limites diferentes. Não misture os dois tipos no mesmo pará
 - Comece com uma ordem ou uma condição simples. Depois, diga o risco.
 - Exemplo: "ADVERTÊNCIA: Não toque no conector. O conector pode ter uma tensão perigosa."
 
-## Passo 6: Verifique o seu texto
+## Passo 6: Além do texto puro (Beyond Text)
+
+- Quando um procedimento tiver mais de duas condições de decisão, faça um diagrama Mermaid.
+- Use `flowchart TD` ou `flowchart LR`.
+- Escreva frases curtas e diretas dentro dos nós do diagrama. Não use gerúndio dentro dos diagramas.
+- Para diagnóstico e solução de falhas, use uma tabela de três colunas:
+  - Coluna 1: Sintoma ou condição encontrada.
+  - Coluna 2: Causa provável.
+  - Coluna 3: Ação corretiva com verbo no imperativo.
+
+## Passo 7: Filtro anti-slop de modelos de linguagem (Regra Hermes)
+
+Modelos de linguagem usam palavras vazias que consomem tokens e atrapalham a comunicação técnica.
+Em equipes de agentes no Hermes, elimine todos os vícios de linguagem:
+
+- Não use saudações ou cortesias: "Certamente!", "Com certeza!", "Olá!", "Com prazer!".
+- Não use clichês de transição: "Vale destacar que", "É importante notar que", "Cabe ressaltar que".
+- Não use conclusões genéricas: "Espero ter ajudado!", "Em suma", "Fique à vontade para perguntar".
+- Não use emojis em procedimentos técnicos ou mensagens entre agentes.
+- Comece direto com a resposta técnica e termine logo após o último passo.
+
+## Passo 8: Modo de comparação (Diff) e Protocolo para Agentes no Hermes
+
+Ao revisar textos de usuários ou de outros agentes, apresente a alteração com justificativa:
+
+- Mostre o texto original.
+- Mostre o texto revisado em PTS.
+- Indique cada regra aplicada e o motivo da mudança.
+
+Ao transferir uma tarefa para outro agente no Hermes (handoff), use a estrutura de quatro campos:
+
+- **Objetivo**: declare a meta em uma frase direta.
+- **Status**: informe o estado atual da tarefa.
+- **Contexto**: informe os dados técnicos e identificadores.
+- **Ação Requerida**: declare a ordem direta para o próximo agente.
+
+## Passo 9: Níveis de rigor
+
+A ferramenta de verificação tem dois níveis de rigor:
+
+- **Modo Pragmático (`--rigor pragmatico`)**: Padrão para software, nuvem e agentes. A ferramenta aceita termos técnicos modernos sem alertas de vocabulário. A ferramenta mantém tolerância zero com gerúndio, voz passiva, frases longas e slop.
+- **Modo Estrito (`--rigor estrito`)**: Indicado para manuais industriais e aeroespaciais. A ferramenta compara cada palavra com o vocabulário fechado de `references/vocabulario.md`.
+
+## Passo 10: Ciclo de auto-correção do agente (Self-Linting Loop)
+
+Se você é um agente de inteligência artificial, opere neste ciclo fechado:
+
+1. Escreva o rascunho do texto técnico em PTS.
+2. Execute a ferramenta de verificação:
+   `python scripts/pts_check.py --rigor pragmatico --formato agente <arquivo>`
+3. Leia os erros apontados no relatório.
+4. Ajuste cada frase com erro: divida frases longas, remova gerúndios e elimine expressões prolixas.
+5. Verifique o texto de novo.
+6. Entregue a resposta somente quando a ferramenta indicar zero erros.
+
+Se o seu ambiente não permite executar comandos, aplique a lista de verificação manual abaixo antes de responder.
+
+## Passo 11: Verifique o seu texto
 
 Depois de escrever, verifique o seu texto. Faça estes passos:
 
-1. Se você pode executar scripts, execute: `python scripts/pts_check.py --modo <procedimento|descritivo> <arquivo>`.
-2. Se você não pode executar scripts, faça uma verificação manual com a lista abaixo.
+1. Se você pode executar scripts, execute: `python scripts/pts_check.py --modo <procedimento|descritivo> --rigor pragmatico <arquivo>`.
+2. Se você não pode executar scripts, revise o texto manualmente com a lista abaixo.
 3. Corrija cada erro.
 4. Verifique o texto de novo. Pare somente quando o texto não tiver erros.
 
 Lista de verificação manual:
 
 - Procure ponto e vírgula e formas coloquiais. Remova-os.
+- Procure saudações de cortesia, clichês de transição, conclusões genéricas e emojis. Remova-os.
 - Procure palavras terminadas em "-ando", "-endo" e "-indo". Reescreva os gerúndios.
 - Procure "tem", "tinha", "havia" e "há" antes de um particípio. Use o pretérito perfeito.
 - Procure "deveria", "poderia", "seria", "talvez" e "recomenda-se". Substitua ou remova.
@@ -122,6 +180,7 @@ Você também deve comparar as suas palavras com `references/vocabulario.md`.
 - `references/vocabulario.md`: o vocabulário recomendado, com classes gramaticais e formas irregulares.
 - `references/substituicoes.md`: substituições para palavras frequentes que não são recomendadas, e as categorias de nomes técnicos e de verbos técnicos.
 - `examples/antes-depois.md`: exemplos de texto antes e depois da mudança para PTS.
+- `examples/comunicacao-agentes-hermes.md`: exemplos de transferência entre agentes no Hermes, diagramas Mermaid e tabelas de diagnóstico.
 
 ## Base
 
